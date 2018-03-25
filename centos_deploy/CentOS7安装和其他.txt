@@ -1,0 +1,142 @@
+1. 安装virtualbox
+2. 下载Centos7
+3. 设置网络
+	设置好后可以进行远程连接操作
+	1）设置网络连接
+		cd /etc/sysconfifg/network-scripts/
+		vi ifcfg-enps0s3, set ONBOOT=YES
+		service network restart -> 至此可ping www.baidu.com
+	
+	2）设置局域网访问（本机和其他机器）
+	拷贝一份ifcfg-enps0s3为cfg-enps0s8，如果有则不需要拷贝
+		(1)以下为仅限本机访问
+			第二张网卡设置为host-only仅限本机，混杂模式为拒绝
+			vi cfg-enps0s8, set ONBOOT=yes BOOTPROTO=static IPADDR="ANY IS OK 192.168.X.X" NETWORKMASK=255.255.255.0
+			service network restart
+		(2)以下为其他机器和本机均能访问虚拟机
+			第二张网卡设置为桥接模式，混杂模式为运行所有
+			参考：https://blog.csdn.net/buyueliuying/article/details/51635352
+			然后执行service network restart
+	
+4. 安装gcc: yum install gcc
+5. 安装g++：yum install gcc-c++
+6. 安装boost（包括asio）
+    yum install boost
+    yum install boost-devel
+    yum install boost-doc
+	测试程序
+		#include<iostream>  
+		#include<boost/asio.hpp>  
+		
+		using namespace boost::asio;  
+		void handler(const boost::system::error_code &ec)    
+		{  
+			std::cout << "1 s." << std::endl;    
+		}  
+		int main()    
+		{  
+			boost::asio::io_service io_service;    
+			boost::asio::deadline_timer timer(io_service, boost::posix_time::seconds(1));     
+			timer.async_wait(handler);     
+			io_service.run();    
+			std::cout << "hello world"<<std::endl;  
+		} 
+	编译命令: g++  -o  test test.cpp -lboost_thread -lboost_system
+	
+7. 安装常用工具
+	route（net）工具
+		yum search ifconfig
+		yum install net-tools.x86_64
+	安装rzsz
+		yum install lrzsz
+		
+8. 安装nginx
+	1）准备环境：
+       配置Nginx需要一系列的编辑环境，所以需要先下载好环境:
+       # yum install gcc zlib zlib-devel openssl openssl-devel -y
+	2）下载好环境后就可以下载nginx安装包:
+       (1)直接下载.tar.gz安装包,地址:https://nginx.org/en/download.html 
+       (2)使用wget命令下载（推荐）
+        # wget -c https://nginx.org/download/nginx-1.12.2.tar.gz
+	3）下载好安装包后我们来进行nginx的安装:
+        (1)解压
+        # tar -zxvf nginx-1.12.2.tar.gz
+        # cd nginx-1.12.2
+        (2)配置（在nginx解压目录中进行）
+        # ./configure                        //nginx默认安装位置是在/usr/local/nginx下
+	   (3)编译安装
+	   # make
+	   # make install 
+	4）启动、停止nginx：
+		进入默认目录下的/sbin目录
+		# cd /usr/local/nginx/sbin/
+		# ./nginx 
+		# ./nginx -s stop
+		# ./nginx -s quit
+		# ./nginx -s reload
+		# ./nginx -s quit:此方式停止步骤是待nginx进程处理任务完毕进行停止。
+		# ./nginx -s stop:此方式相当于先查出nginx进程id再使用kill命令强制杀掉进程。
+        查询nginx进程：
+		# ps aux|grep nginx
+	5）安装过程结束后可以通过浏览器检查安装是否成功，输入ip地址，但是有可能无法访问，防火墙要开放80端口
+		firewall-cmd --permanent --zone=public --add-port=80/tcp
+		firewall-cmd --permanent --zone=public --add-port=80/udp
+		firewall-cmd --reload(重启防火墙)
+		查看开放的端口
+		firewall-cmd --list-ports
+	6）设置反向代理	
+
+        编辑/usr/local/nginx/nginx.conf文件
+
+            在http{}部分添加如下内容:
+
+                
+
+                server {
+
+                        listen 8080;        #nginx服务器的代理端口
+
+                        server_name _;    
+
+                location / {
+
+                        proxy_pass http://172.18.78.14:6080;    #需要反向代理的IP地址+端口
+
+                        proxy_http_version 1.1;
+
+                        proxy_set_header Upgrade $http_upgrade;
+
+                        proxy_set_header Connection "Upgrade";
+
+
+
+                        }
+
+                }
+
+	7）重启Nginx:
+
+					 ./nginx -s reload
+
+	8）在浏览器中访问你的IP:8080,即可访问http://172.18.78.14:6080网站。
+	
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
